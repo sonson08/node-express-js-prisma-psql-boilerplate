@@ -7,6 +7,8 @@ var logger = require('morgan');
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var sampleRouter = require('./routes/sample');
+var summariesRouter = require('./routes/summaries');
+var apiErrorHandler = require('./middleware/apiErrorHandler');
 
 var app = express();
 
@@ -23,11 +25,15 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/sample-call', sampleRouter);
+app.use('/api/v1/summaries', summariesRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));
 });
+
+// JSON errors for /api routes
+app.use('/api', apiErrorHandler);
 
 // error handler
 app.use(function(err, req, res, next) {
