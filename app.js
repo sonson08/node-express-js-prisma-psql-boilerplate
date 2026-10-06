@@ -8,6 +8,7 @@ const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
 const sampleRouter = require('./routes/sample');
 const summariesRouter = require('./routes/summaries');
+const quizzesRouter = require('./routes/quizzes');
 const apiErrorHandler = require('./middleware/apiErrorHandler');
 
 const app = express();
@@ -25,6 +26,7 @@ app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/sample-call', sampleRouter);
 app.use('/api/v1/summaries', summariesRouter);
+app.use('/api/v1/quizzes', quizzesRouter);
 
 app.use((req, res, next) => {
   next(createError(404));
