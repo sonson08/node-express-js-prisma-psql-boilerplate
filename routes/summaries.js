@@ -1,9 +1,8 @@
-var express = require('express');
-var router = express.Router();
-var validateNotes = require('../middleware/validateNotes');
-var summaryController = require('../controllers/summaryController');
+const express = require('express');
+const router = express.Router();
+const validateNotes = require('../middleware/validateNotes');
+const summaryController = require('../controllers/summaryController');
 
-/* POST generate a summary from notes. */
 router.post('/', validateNotes, summaryController.create);
 
 module.exports = router;
