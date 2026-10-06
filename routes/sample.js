@@ -1,8 +1,7 @@
-var express = require('express');
-var router = express.Router();
-var sampleController = require('../controllers/sampleController');
+const express = require('express');
+const router = express.Router();
+const sampleController = require('../controllers/sampleController');
 
-/* GET sample LLM call. */
 router.get('/', sampleController.sampleCall);
 
 module.exports = router;

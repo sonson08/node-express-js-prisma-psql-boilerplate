@@ -1,6 +1,6 @@
-var llmService = require("./llmService");
+const llmService = require("./llmService");
 
-var buildPrompt = (notes) => `Summarize the study notes inside the <notes> tags.
+const buildPrompt = (notes) => `Summarize the study notes inside the <notes> tags.
 Respond with ONLY a JSON object, with no other text, in exactly this shape:
 {"summary": "<summary>", "keyPoints": ["<key point>", "..."], "terms": ["<term>", "..."]}
 
@@ -12,14 +12,14 @@ Respond with ONLY a JSON object, with no other text, in exactly this shape:
 ${notes}
 </notes>`;
 
-var isStringArray = (value) =>
+const isStringArray = (value) =>
   Array.isArray(value) && value.every((item) => typeof item === "string");
 
-/* Pull the JSON object out of the reply and check its shape. Throws if invalid. */
-var parseSummary = (text) => {
-  var json = text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
-  var parsed = JSON.parse(json);
-  var isValid =
+const parseSummary = (text) => {
+  // The model sometimes wraps the JSON in prose or code fences, so only the outermost object is parsed.
+  const json = text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
+  const parsed = JSON.parse(json);
+  const isValid =
     typeof parsed.summary === "string" &&
     isStringArray(parsed.keyPoints) &&
     isStringArray(parsed.terms);
@@ -31,9 +31,8 @@ var parseSummary = (text) => {
   };
 };
 
-/* Generate a summary, key points, and terms. The LLM call is logged to llm_logs by llmService. */
-var generateSummary = async (notes) => {
-  var text = await llmService.invoke(buildPrompt(notes));
+const generateSummary = async (notes) => {
+  const text = await llmService.invoke(buildPrompt(notes));
   return parseSummary(text);
 };
 

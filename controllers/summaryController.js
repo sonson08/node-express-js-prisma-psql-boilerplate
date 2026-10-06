@@ -1,8 +1,8 @@
-var createError = require('http-errors');
-var summaryService = require('../services/summaryService');
+const createError = require('http-errors');
+const summaryService = require('../services/summaryService');
 
 exports.create = async (req, res, next) => {
-  var data;
+  let data;
   try {
     data = await summaryService.generateSummary(req.body.notes);
   } catch (err) {
