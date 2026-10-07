@@ -7,6 +7,7 @@
   },
   "scripts": {
     "start": "node ./bin/www",
+    "test": "jest",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "db:generate": "prisma generate",
@@ -14,7 +15,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "db:reset": "prisma migrate reset"
+    "db:reset": "prisma migrate reset",
+    "dev": "nodemon index.js"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1146.0",
@@ -29,5 +31,10 @@
     "morgan": "~1.9.1",
     "pg": "^8.23.1",
     "prisma": "^7.10.0"
+  },
+  "devDependencies": {
+    "jest": "^30.5.2",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.3.1"
   }
 }

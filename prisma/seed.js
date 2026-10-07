@@ -1,6 +1,6 @@
-var prisma = require('../db');
+const prisma = require('../db');
 
-async function main() {
+const main = async () => {
   await prisma.user.upsert({
     where: { email: 'alice@example.com' },
     update: {},
@@ -11,13 +11,11 @@ async function main() {
     update: {},
     create: { email: 'bob@example.com', name: 'Bob' },
   });
-}
+};
 
 main()
-  .catch(function(e) {
+  .catch((e) => {
     console.error(e);
     process.exitCode = 1;
   })
-  .finally(function() {
-    return prisma.$disconnect();
-  });
+  .finally(() => prisma.$disconnect());
