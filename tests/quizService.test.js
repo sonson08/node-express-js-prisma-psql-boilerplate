@@ -1,4 +1,4 @@
-jest.mock('../services/llmService', () => ({ invoke: jest.fn() }));
+jest.mock('../services/llmService', () => ({ invokeTool: jest.fn() }));
 
 const llmService = require('../services/llmService');
 const quizService = require('../services/quizService');
@@ -23,40 +23,36 @@ const expectedQuestion = (id) => ({
   explanation: 'Chloroplasts contain chlorophyll, which captures light energy.',
 });
 
-const reply = (questions) => JSON.stringify({ questions: questions });
+const reply = (questions) => ({ questions: questions });
 
 describe('quizService.generateQuiz', () => {
   beforeEach(() => {
-    llmService.invoke.mockReset();
+    llmService.invokeTool.mockReset();
   });
 
   test('sends the notes wrapped in <notes> tags and the question count to the LLM', async () => {
-    llmService.invoke.mockResolvedValue(reply([llmQuestion]));
+    llmService.invokeTool.mockResolvedValue(reply([llmQuestion]));
 
     await quizService.generateQuiz('Photosynthesis happens in chloroplasts.', 7);
 
-    expect(llmService.invoke).toHaveBeenCalledTimes(1);
-    const prompt = llmService.invoke.mock.calls[0][0];
+    expect(llmService.invokeTool).toHaveBeenCalledTimes(1);
+    const [prompt, tool] = llmService.invokeTool.mock.calls[0];
     expect(prompt).toContain('<notes>\nPhotosynthesis happens in chloroplasts.\n</notes>');
     expect(prompt).toContain('Create 7 multiple-choice quiz questions');
+    expect(tool.name).toBe('submit_quiz');
+    expect(tool.inputSchema.required).toEqual(['questions']);
   });
 
   test('returns questions with sequential ids and choices as a keyed array', async () => {
-    llmService.invoke.mockResolvedValue(reply([llmQuestion, llmQuestion]));
+    llmService.invokeTool.mockResolvedValue(reply([llmQuestion, llmQuestion]));
 
     await expect(quizService.generateQuiz('notes', 2)).resolves.toEqual({
       questions: [expectedQuestion(1), expectedQuestion(2)],
     });
   });
 
-  test('extracts the JSON object when the LLM wraps it in extra text', async () => {
-    llmService.invoke.mockResolvedValue(`Here is your quiz:\n\`\`\`json\n${reply([llmQuestion])}\n\`\`\`\nGood luck!`);
-
-    await expect(quizService.generateQuiz('notes', 1)).resolves.toEqual({ questions: [expectedQuestion(1)] });
-  });
-
   test('keeps only the requested number of questions', async () => {
-    llmService.invoke.mockResolvedValue(reply([llmQuestion, llmQuestion, llmQuestion]));
+    llmService.invokeTool.mockResolvedValue(reply([llmQuestion, llmQuestion, llmQuestion]));
 
     const result = await quizService.generateQuiz('notes', 2);
 
@@ -64,7 +60,7 @@ describe('quizService.generateQuiz', () => {
   });
 
   test('accepts fewer questions than requested', async () => {
-    llmService.invoke.mockResolvedValue(reply([llmQuestion]));
+    llmService.invokeTool.mockResolvedValue(reply([llmQuestion]));
 
     const result = await quizService.generateQuiz('notes', 5);
 
@@ -72,23 +68,21 @@ describe('quizService.generateQuiz', () => {
   });
 
   test('drops fields the LLM adds beyond the expected shape', async () => {
-    llmService.invoke.mockResolvedValue(
-      JSON.stringify({ questions: [{ ...llmQuestion, id: 99, difficulty: 'easy' }], extra: 'ignored' })
-    );
+    llmService.invokeTool.mockResolvedValue({
+      questions: [{ ...llmQuestion, id: 99, difficulty: 'easy' }],
+      extra: 'ignored',
+    });
 
     await expect(quizService.generateQuiz('notes', 1)).resolves.toEqual({ questions: [expectedQuestion(1)] });
   });
 
-  test('throws when the reply contains no JSON', async () => {
-    llmService.invoke.mockResolvedValue('Sorry, I cannot help with that.');
+  test('keeps LaTeX and quotes in choice text intact', async () => {
+    const choices = { A: 'Factoring', B: '$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$', C: 'the "vertex"', D: '$D < 0$' };
+    llmService.invokeTool.mockResolvedValue(reply([{ ...llmQuestion, choices: choices }]));
 
-    await expect(quizService.generateQuiz('notes', 1)).rejects.toThrow(SyntaxError);
-  });
+    const result = await quizService.generateQuiz('notes', 1);
 
-  test('throws when the reply contains malformed JSON', async () => {
-    llmService.invoke.mockResolvedValue('{"questions": [');
-
-    await expect(quizService.generateQuiz('notes', 1)).rejects.toThrow();
+    expect(result.questions[0].choices.map((choice) => choice.text)).toEqual(Object.values(choices));
   });
 
   test.each([
@@ -103,13 +97,13 @@ describe('quizService.generateQuiz', () => {
     ['correctAnswer is not A-D', { questions: [{ ...llmQuestion, correctAnswer: 'E' }] }],
     ['explanation is missing', { questions: [{ ...llmQuestion, explanation: undefined }] }],
   ])('throws an invalid format error when %s', async (_, body) => {
-    llmService.invoke.mockResolvedValue(JSON.stringify(body));
+    llmService.invokeTool.mockResolvedValue(body);
 
     await expect(quizService.generateQuiz('notes', 1)).rejects.toThrow('LLM returned an invalid quiz format');
   });
 
   test('propagates errors from the LLM call', async () => {
-    llmService.invoke.mockRejectedValue(new Error('Bedrock throttled'));
+    llmService.invokeTool.mockRejectedValue(new Error('Bedrock throttled'));
 
     await expect(quizService.generateQuiz('notes', 1)).rejects.toThrow('Bedrock throttled');
   });
